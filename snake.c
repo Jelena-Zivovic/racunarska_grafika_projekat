@@ -1,17 +1,53 @@
 #include <stdlib.h>
 #include <GL/glut.h>
 
+typedef struct {
+    float x;
+    float y;
+    float z;
+} Position;
+
+typedef struct  {
+    float parameter_x;
+    float parameter_y;
+    float parameter_z;
+
+} Parameter;
+
+#define TIMER_INTERVAL 15
+#define TIMER_ID 0
+
+#define UP 1
+#define DOWN 2
+#define LEFT 3
+#define RIGHT 4
+
 static int window_width, window_height;
-static float pos_x_snake, pos_y_snake, pos_z_snake;
+
+static Parameter *parameters;
+static int is_animation_going = 0;
+static float speed = 0.01;
+static float size = 0.1;
+
+
+static int current_direction = LEFT;
+static int previous_direction = LEFT;
+
+static Position *positions_of_snake;
+static Position *positions_of_head;
+
+static int indicator_of_position_head = 0;
 
 static void on_display(void);
 static void on_keyboard(unsigned char key, int x, int y);
 static void on_reshape(int width, int height);
+static void on_timer(int value);
+static void on_special(int key, int x, int y);
 
 static void drawWall();
 static void view();
 static void light_scene();
-static void init_snake();
+static void draw_snake();
 
 int main(int argc, char **argv) {
 
@@ -22,13 +58,28 @@ int main(int argc, char **argv) {
     glutInitWindowPosition(200, 200);
     glutCreateWindow("zmijica");
 
+    parameters = malloc(50*sizeof(Parameter));
+    if (parameters == NULL) {
+        return;
+    }
+
+    parameters[0].parameter_x = 0;
+    parameters[0].parameter_y = 0;
+    parameters[0].parameter_z = 0;
+
+    positions_of_snake = malloc(50*sizeof(Position));
+    positions_of_head = malloc(50 * sizeof(Position));
+
     glutReshapeFunc(on_reshape);
+    glutSpecialFunc(on_special);
     glutKeyboardFunc(on_keyboard);
+    
     glutDisplayFunc(on_display);
+    
 
     glClearColor(0, 0.58, 0, 0);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_LIGHTING);
+    
     glLineWidth(2);
 
     glutMainLoop();
@@ -132,11 +183,280 @@ static void on_reshape(int width, int height) {
     window_height = height;
 }
 
+static void on_special(int key, int x, int y) {
+
+    int num = sizeof(positions_of_head) / sizeof(Position);
+
+    switch(key) {
+        case 101:
+            previous_direction = current_direction;
+            current_direction = UP;
+            positions_of_head[num].x = positions_of_snake[0].x;
+            positions_of_head[num].y = positions_of_snake[0].y;
+            positions_of_head[num].z = positions_of_snake[0].z;
+
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        
+        case 103:
+            previous_direction = current_direction;
+            current_direction = DOWN;
+            positions_of_head[num].x = positions_of_snake[0].x;
+            positions_of_head[num].y = positions_of_snake[0].y;
+            positions_of_head[num].z = positions_of_snake[0].z;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        case 100:
+            previous_direction = current_direction;
+            current_direction = LEFT;
+            positions_of_head[num].x = positions_of_snake[0].x;
+            positions_of_head[num].y = positions_of_snake[0].y;
+            positions_of_head[num].z = positions_of_snake[0].z;
+
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        case 102:
+            previous_direction = current_direction;
+            current_direction = RIGHT;
+            positions_of_head[num].x = positions_of_snake[0].x;
+            positions_of_head[num].y = positions_of_snake[0].y;
+            positions_of_head[num].z = positions_of_snake[0].z;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+
+    }
+    glutPostRedisplay();
+
+}
+
+static void on_timer(int value) {
+    if (value != 0) {
+        return;
+    }
+
+    switch (current_direction)
+    {
+        case UP:
+            parameters[0].parameter_x += speed;
+            switch (previous_direction) {
+                case LEFT:
+
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                       
+                        
+                        parameters[1].parameter_x += speed;
+                        positions_of_snake[0].x += speed;
+                        positions_of_snake[1].x += speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        positions_of_snake[0].x += speed;
+                        positions_of_snake[1].z -= speed;
+                        parameters[1].parameter_z -= speed;
+                    }
+
+                    
+                    break;
+                case RIGHT:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_x += speed;
+                        positions_of_snake[0].x += speed;
+                        positions_of_snake[1].x += speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_z += speed;
+                        positions_of_snake[0].x += speed;
+                        positions_of_snake[1].z += speed;
+                    }
+                    break;
+            }
+            break;
+            
+        case DOWN:
+            parameters[0].parameter_x -= speed;
+            switch (previous_direction) {
+                case LEFT:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_x -= speed;
+                        positions_of_snake[0].x -= speed;
+                        positions_of_snake[1].x -= speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_z -= speed;
+                        positions_of_snake[0].x -= speed;
+                        positions_of_snake[1].z -= speed;
+                    }
+                    break;
+                case RIGHT:
+
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_x -= speed;
+                        positions_of_snake[0].x -= speed;
+                        positions_of_snake[1].x -= speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_z += speed;
+                        positions_of_snake[0].x -= speed;
+                        positions_of_snake[1].z += speed;
+                    }
+
+                    
+                    break;
+            }
+            break;
+        case LEFT:
+            parameters[0].parameter_z -= speed;
+            switch (previous_direction) {
+                case UP:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_z -= speed;
+                        positions_of_snake[0].z -= speed;
+                        positions_of_snake[1].z -= speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_x += speed;
+                        positions_of_snake[0].z -= speed;
+                        positions_of_snake[1].x += speed;
+
+                    }
+                    break;
+                case DOWN:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_z -= speed;
+                        positions_of_snake[0].z -= speed;
+                        positions_of_snake[1].z -= speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_x -= speed;
+                        positions_of_snake[0].z -= speed;
+                        positions_of_snake[0].x -= speed;
+                    }
+                    break;
+            }
+            break;
+        case RIGHT:
+            parameters[0].parameter_z += speed;
+            switch (previous_direction) {
+                case UP:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_z += speed;
+                        positions_of_snake[0].z += speed;
+                        positions_of_snake[1].z += speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_x += speed;
+                        positions_of_snake[0].z += speed;
+                        positions_of_snake[0].x += speed;
+                    }
+                    break;
+                case DOWN:
+                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
+                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
+                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
+                        parameters[1].parameter_z += speed;
+                        positions_of_snake[0].z += speed;
+                        positions_of_snake[1].z += speed;
+                        indicator_of_position_head++;
+                    }
+                    else {
+                        parameters[1].parameter_x -= speed;
+                        positions_of_snake[0].z += speed;
+                        positions_of_snake[1].x -= speed;
+                    }
+                    break;
+            }
+            break;
+    }
+
+    glutPostRedisplay();
+
+    if (is_animation_going) {
+        glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+    }
+}
+
 static void on_keyboard(unsigned char key, int x, int y) {
     switch(key) {
         case 27:
             exit(0);
             break;
+        case 'a':
+            previous_direction = current_direction;
+            current_direction = LEFT;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+
+        case 'w':
+            previous_direction = current_direction;
+            current_direction = UP;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        case 'd':
+            previous_direction = current_direction;
+            current_direction = RIGHT;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        case 'x':
+            previous_direction = current_direction;
+            current_direction = DOWN;
+            if (!is_animation_going) {
+                
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+            }
+            break;
+        case 's':
+            is_animation_going = 0;
+            break;
+
     }
 }
 
@@ -185,6 +505,49 @@ static void light_scene() {
     glEnable(GL_LIGHT0);
 }
 
+static void draw_snake() {
+
+    
+
+    glColor3f(0, 0, 1);
+
+    glPushMatrix();
+
+
+
+    glTranslatef(
+        parameters[0].parameter_x,
+        parameters[0].parameter_y,
+        parameters[0].parameter_z
+    );
+    positions_of_snake[0].x = parameters[0].parameter_x;
+    positions_of_snake[0].y = parameters[0].parameter_y;
+    positions_of_snake[0].z = parameters[0].parameter_z;
+
+    glutSolidCube(2*size);
+
+
+    glPopMatrix();
+/*
+    glPushMatrix();
+    glTranslatef(
+        parameters[1].parameter_x,
+        parameters[1].parameter_y,
+        2*size + parameters[1].parameter_z
+    );
+
+    positions_of_snake[1].x = parameters[1].parameter_x;
+    positions_of_snake[1].y = parameters[1].parameter_y;
+    positions_of_snake[1].z = 2*size +  parameters[1].parameter_z;
+
+    glutSolidSphere(size, 20, 20);
+
+
+    glPopMatrix();
+
+    */
+
+}
 
 
 static void on_display(void) {
@@ -192,12 +555,13 @@ static void on_display(void) {
 
     
     view();
-    light_scene();
+    
     
     drawWall();
+
+    draw_snake();
     
 
     glutSwapBuffers();
 
 }
-
