@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <GL/glut.h>
+#include <time.h>
 
 typedef struct {
     float x;
@@ -22,11 +23,13 @@ typedef struct  {
 #define LEFT 3
 #define RIGHT 4
 
+static indicator_draw_food = 0;
+
 static int window_width, window_height;
 
 static Parameter *parameters;
 static int is_animation_going = 0;
-static float speed = 0.01;
+static float speed = 0.012;
 static float size = 0.1;
 
 
@@ -34,9 +37,10 @@ static int current_direction = LEFT;
 static int previous_direction = LEFT;
 
 static Position *positions_of_snake;
-static Position *positions_of_head;
 
-static int indicator_of_position_head = 0;
+static Position *positions_of_food;
+static int pos = 0;
+
 
 static void on_display(void);
 static void on_keyboard(unsigned char key, int x, int y);
@@ -48,6 +52,10 @@ static void drawWall();
 static void view();
 static void light_scene();
 static void draw_snake();
+static void draw_food(int pos);
+static void game_over();
+static void check_is_food_eaten(int i);
+
 
 int main(int argc, char **argv) {
 
@@ -63,12 +71,33 @@ int main(int argc, char **argv) {
         return;
     }
 
+    /*parametri pravca i smera kretanja zmije */
+
     parameters[0].parameter_x = 0;
     parameters[0].parameter_y = 0;
     parameters[0].parameter_z = 0;
 
+    
+
     positions_of_snake = malloc(50*sizeof(Position));
-    positions_of_head = malloc(50 * sizeof(Position));
+
+    positions_of_food = malloc(15 * sizeof(Position));
+
+    int i;
+
+    srand(time(NULL));
+
+    /*generisemo random pozicije hrane */
+
+    for (i = 0; i < 15; i++) {
+        positions_of_food[i].x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
+        positions_of_food[i].y = 0;
+        positions_of_food[i].z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+
+    }
+
+    glShadeModel(GL_SMOOTH);
+  
 
     glutReshapeFunc(on_reshape);
     glutSpecialFunc(on_special);
@@ -185,15 +214,13 @@ static void on_reshape(int width, int height) {
 
 static void on_special(int key, int x, int y) {
 
-    int num = sizeof(positions_of_head) / sizeof(Position);
+    
 
     switch(key) {
         case 101:
             previous_direction = current_direction;
             current_direction = UP;
-            positions_of_head[num].x = positions_of_snake[0].x;
-            positions_of_head[num].y = positions_of_snake[0].y;
-            positions_of_head[num].z = positions_of_snake[0].z;
+            
 
             if (!is_animation_going) {
                 
@@ -205,9 +232,7 @@ static void on_special(int key, int x, int y) {
         case 103:
             previous_direction = current_direction;
             current_direction = DOWN;
-            positions_of_head[num].x = positions_of_snake[0].x;
-            positions_of_head[num].y = positions_of_snake[0].y;
-            positions_of_head[num].z = positions_of_snake[0].z;
+            
             if (!is_animation_going) {
                 
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
@@ -217,9 +242,7 @@ static void on_special(int key, int x, int y) {
         case 100:
             previous_direction = current_direction;
             current_direction = LEFT;
-            positions_of_head[num].x = positions_of_snake[0].x;
-            positions_of_head[num].y = positions_of_snake[0].y;
-            positions_of_head[num].z = positions_of_snake[0].z;
+            
 
             if (!is_animation_going) {
                 
@@ -230,9 +253,7 @@ static void on_special(int key, int x, int y) {
         case 102:
             previous_direction = current_direction;
             current_direction = RIGHT;
-            positions_of_head[num].x = positions_of_snake[0].x;
-            positions_of_head[num].y = positions_of_snake[0].y;
-            positions_of_head[num].z = positions_of_snake[0].z;
+           
             if (!is_animation_going) {
                 
                 glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
@@ -250,157 +271,37 @@ static void on_timer(int value) {
         return;
     }
 
+    if (positions_of_snake[0].x >= 1.8 ||
+        positions_of_snake[0].x <= -1.8 ||
+        positions_of_snake[0].z >= 2.8 || 
+        positions_of_snake[0].z <= -2.8) {
+        
+        is_animation_going = 0;
+
+        game_over();
+    }
+
+    check_is_food_eaten(pos-1);
+
     switch (current_direction)
     {
         case UP:
             parameters[0].parameter_x += speed;
-            switch (previous_direction) {
-                case LEFT:
 
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                       
-                        
-                        parameters[1].parameter_x += speed;
-                        positions_of_snake[0].x += speed;
-                        positions_of_snake[1].x += speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        positions_of_snake[0].x += speed;
-                        positions_of_snake[1].z -= speed;
-                        parameters[1].parameter_z -= speed;
-                    }
 
-                    
-                    break;
-                case RIGHT:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_x += speed;
-                        positions_of_snake[0].x += speed;
-                        positions_of_snake[1].x += speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_z += speed;
-                        positions_of_snake[0].x += speed;
-                        positions_of_snake[1].z += speed;
-                    }
-                    break;
-            }
             break;
             
         case DOWN:
             parameters[0].parameter_x -= speed;
-            switch (previous_direction) {
-                case LEFT:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_x -= speed;
-                        positions_of_snake[0].x -= speed;
-                        positions_of_snake[1].x -= speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_z -= speed;
-                        positions_of_snake[0].x -= speed;
-                        positions_of_snake[1].z -= speed;
-                    }
-                    break;
-                case RIGHT:
-
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_x -= speed;
-                        positions_of_snake[0].x -= speed;
-                        positions_of_snake[1].x -= speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_z += speed;
-                        positions_of_snake[0].x -= speed;
-                        positions_of_snake[1].z += speed;
-                    }
-
-                    
-                    break;
-            }
+            
             break;
         case LEFT:
             parameters[0].parameter_z -= speed;
-            switch (previous_direction) {
-                case UP:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_z -= speed;
-                        positions_of_snake[0].z -= speed;
-                        positions_of_snake[1].z -= speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_x += speed;
-                        positions_of_snake[0].z -= speed;
-                        positions_of_snake[1].x += speed;
-
-                    }
-                    break;
-                case DOWN:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_z -= speed;
-                        positions_of_snake[0].z -= speed;
-                        positions_of_snake[1].z -= speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_x -= speed;
-                        positions_of_snake[0].z -= speed;
-                        positions_of_snake[0].x -= speed;
-                    }
-                    break;
-            }
+            
             break;
         case RIGHT:
             parameters[0].parameter_z += speed;
-            switch (previous_direction) {
-                case UP:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_z += speed;
-                        positions_of_snake[0].z += speed;
-                        positions_of_snake[1].z += speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_x += speed;
-                        positions_of_snake[0].z += speed;
-                        positions_of_snake[0].x += speed;
-                    }
-                    break;
-                case DOWN:
-                    if (positions_of_snake[1].x == positions_of_head[indicator_of_position_head].x &&
-                        positions_of_snake[1].y == positions_of_head[indicator_of_position_head].y &&
-                        positions_of_snake[1].z == positions_of_head[indicator_of_position_head].z) {
-                        parameters[1].parameter_z += speed;
-                        positions_of_snake[0].z += speed;
-                        positions_of_snake[1].z += speed;
-                        indicator_of_position_head++;
-                    }
-                    else {
-                        parameters[1].parameter_x -= speed;
-                        positions_of_snake[0].z += speed;
-                        positions_of_snake[1].x -= speed;
-                    }
-                    break;
-            }
+           
             break;
     }
 
@@ -524,6 +425,7 @@ static void draw_snake() {
     positions_of_snake[0].y = parameters[0].parameter_y;
     positions_of_snake[0].z = parameters[0].parameter_z;
 
+  
     glutSolidCube(2*size);
 
 
@@ -549,6 +451,93 @@ static void draw_snake() {
 
 }
 
+static void draw_food(int pos) {
+    glColor3f(0.5, 0, 0.5);
+
+    glPushMatrix();
+
+    glTranslatef(
+        positions_of_food[pos].x,
+        positions_of_food[pos].y,
+        positions_of_food[pos].z
+    );
+
+    
+
+    glutSolidSphere(0.07, 20, 20);
+
+    
+
+    glPopMatrix();
+
+    
+}
+
+static void game_over() {
+    /*treba da se ispise da je igra gotova i poeni */
+
+
+
+    /*brzina se postavlja na nulu, sto znaci je sada onemoguceno kretanje zmije  */
+    speed = 0;
+
+
+}
+
+static void check_is_food_eaten(int i){
+
+    /*provera za prvi kvadrant, gde su x i z pozitivni, y je 0 */
+    float first = 10;
+    float second = 10;
+
+    if (positions_of_snake[0].x >= 0 && positions_of_food[i].x >= 0) {
+        if (positions_of_snake[0].y >= 0 && positions_of_food[i].z >= 0) {
+            first = positions_of_snake[0].x - positions_of_food[i].x;
+            second = positions_of_snake[0].z - positions_of_food[i].z;
+        }
+    
+    }
+
+    /*provera za drugi */
+
+    if (positions_of_snake[0].x >= 0 && positions_of_food[i].x >= 0) {
+        if (positions_of_snake[0].y <= 0 && positions_of_food[i].z <= 0) {
+            first = positions_of_snake[0].x - positions_of_food[i].x;
+            second = positions_of_snake[0].z - positions_of_food[i].z;
+        }
+    }
+
+    /*treci */
+
+    if (positions_of_snake[0].x <= 0 && positions_of_food[i].x <= 0) {
+        if (positions_of_snake[0].y <= 0 && positions_of_food[i].z <= 0) {
+            first = positions_of_snake[0].x - positions_of_food[i].x;
+            second = positions_of_snake[0].z - positions_of_food[i].z;
+        }
+    }
+
+    /*cetvrti */
+    if (positions_of_snake[0].x <= 0 && positions_of_food[i].x <= 0) {
+        if (positions_of_snake[0].y >= 0 && positions_of_food[i].z >= 0) {
+            first = positions_of_snake[0].x - positions_of_food[i].x;
+            second = positions_of_snake[0].z - positions_of_food[i].z;
+        }
+    }
+
+    if (first == 10 || second == 10) {
+        return;
+    }
+
+    int cond1 = first >= -0.02 && first <= 0.02;
+    int cond2 = second >= -0.02 && second <= 0.02;
+
+    if (cond1 && cond2) {
+        printf("hrana\n");
+        
+    }
+
+
+}
 
 static void on_display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -559,7 +548,21 @@ static void on_display(void) {
     
     drawWall();
 
+    draw_food(0);
+    pos = 1;
+
+   /* if (indicator_draw_food) {
+        draw_food(pos);
+        pos = pos + 1;
+        indicator_draw_food = 0;
+    } */
+
+
     draw_snake();
+
+    
+
+    
     
 
     glutSwapBuffers();
