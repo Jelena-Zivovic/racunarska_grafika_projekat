@@ -1,6 +1,74 @@
 #include <stdlib.h>
 #include <GL/glut.h>
 #include <time.h>
+#include <stdio.h>
+
+GLubyte rasters[5 * 24] = {
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000011, 0b00001100,
+    0b11000111, 0b10001100,
+    0b11001100, 0b11001100,
+    0b11011000, 0b01101100,
+    0b11110000, 0b00111100,
+    0b11100000, 0b00011100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11111111, 0b11111100,
+    0b11111111, 0b11111100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11000000, 0b00001100,
+    0b11100000, 0b00011100,
+    0b01111111, 0b11111000,
+    0b00111111, 0b11110000,
+
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b00000011, 0b00000000,
+    0b11111111, 0b11111100,
+    0b11111111, 0b11111100,
+
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11111111, 0b11110000,
+    0b11111111, 0b11110000,
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11000000, 0b00000000,
+    0b11111111, 0b11111100,
+    0b11111111, 0b11111100,
+
+    0b11110000, 0b00000000,
+    0b11110000, 0b00000000,
+    0b11110000, 0b00000000,
+    0b11110000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000,
+    0b00000000, 0b00000000
+};
 
 typedef struct {
     float x;
@@ -23,13 +91,13 @@ typedef struct  {
 #define LEFT 3
 #define RIGHT 4
 
-static indicator_draw_food = 0;
+
 
 static int window_width, window_height;
 
 static Parameter *parameters;
 static int is_animation_going = 0;
-static float speed = 0.012;
+static float speed = 0.01;
 static float size = 0.1;
 static float parameter_food_x;
 static float parameter_food_z;
@@ -51,7 +119,6 @@ static void on_special(int key, int x, int y);
 
 static void drawWall();
 static void view();
-static void light_scene();
 static void draw_snake();
 static void draw_food();
 static void game_over();
@@ -94,6 +161,7 @@ int main(int argc, char **argv) {
 
 
     glShadeModel(GL_SMOOTH);
+    glCullFace(GL_FRONT_AND_BACK);
   
 
     glutReshapeFunc(on_reshape);
@@ -104,6 +172,7 @@ int main(int argc, char **argv) {
     
 
     glClearColor(0, 0.58, 0, 0);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glEnable(GL_DEPTH_TEST);
     
     glLineWidth(2);
@@ -127,19 +196,6 @@ static void view() {
     glLoadIdentity();
     gluLookAt(0, 4, 0, 0, 0, 0, 1, 0, 0);
 
-    glBegin(GL_LINES);
-        glColor3f(1,0,0);
-        glVertex3f(0,0,0);
-        glVertex3f(10,0,0);
-        
-        glColor3f(0,1,0);
-        glVertex3f(0,0,0);
-        glVertex3f(0,10,0);
-        
-        glColor3f(0,0,1);
-        glVertex3f(0,0,0);
-        glVertex3f(0,0,10);
-    glEnd();
 
 }
 
@@ -147,16 +203,59 @@ static void drawWall() {
 
     /*zid se sastoji od 4 pravougaonika */
 
+    
    
     /*leva strana zida */
     glPushMatrix();
 
-    glColor3f(0.7, 0, 0);
+     /*pozicija svetla*/
+    GLfloat position[] = {0, 5, 0, 0};
+
+    /*ambijentalna boja svetla */
+    GLfloat ambient[] = {1, 0, 0, 1};
+
+    /*difuzna boja svetla */
+    GLfloat diffuse[] = {0.7, 0, 0, 1};
+
+    /*spekularna boja svetla */
+    GLfloat specular[] = {0.1, 0.1, 0.1, 1};
+
+    /*ambijentalna refleksija materijala */
+    GLfloat a[] = {0.6, 0.1, 0.1, 0.1, 1};
+
+    /*difuzna refleksija materijala */
+    GLfloat d[] = {0.8, 0, 0.8, 1};
+
+    /*spekularna refleksija materijala */
+    GLfloat s[] = {0.7, 0, 0, 1};
+
+    /*odsjaj */
+
+    GLfloat shininess = 20;
+
+    /*podesavaju se parametri svetla */
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    
+    glLightfv(GL_LIGHT0, GL_POSITION, position);
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+
+    /*podesavaju se parametri materijala */
+    glMaterialfv(GL_FRONT, GL_AMBIENT, a);
+    glMaterialfv(GL_FRONT, GL_DIFFUSE, d);
+    glMaterialfv(GL_FRONT, GL_SPECULAR, s);
+    glMaterialf(GL_FRONT, GL_SHININESS, shininess);
+
+    /*glColor3f(0.7, 0, 0); */
     
     glTranslatef(0, 0, -3);
     glScalef(4, 0.2, 0.2);
     
     glutSolidCube(1);
+    
 
     glPopMatrix();
 
@@ -199,7 +298,8 @@ static void drawWall() {
 
     glPopMatrix();
 
-
+    glDisable(GL_LIGHT0);
+    glDisable(GL_LIGHTING);
     
     
 }
@@ -351,67 +451,63 @@ static void on_keyboard(unsigned char key, int x, int y) {
                 is_animation_going = 1;
             }
             break;
-        case 's':
+        case 'p':
             is_animation_going = 0;
             break;
+        
 
     }
 }
 
-static void light_scene() {
 
-    /*pozicija svetla*/
-    GLfloat position[] = {0, 4, 0, 0};
+static void draw_snake() {
+
+
+    glPushMatrix();
+
+   
+
+     /*pozicija svetla*/
+    GLfloat position[] = {0, 5, 0, 0};
 
     /*ambijentalna boja svetla */
-    GLfloat ambient[] = {1, 0, 0, 1};
+    GLfloat ambient[] = {0, 0.2, 0.7, 1};
 
     /*difuzna boja svetla */
-    GLfloat diffuse[] = {0.7, 0, 0, 1};
+    GLfloat diffuse[] = {0, 0, 0.8, 1};
 
     /*spekularna boja svetla */
     GLfloat specular[] = {0.1, 0.1, 0.1, 1};
 
     /*ambijentalna refleksija materijala */
-    GLfloat a[] = {0.6, 0.1, 0.1, 0.1, 1};
+    GLfloat a[] = {0.1, 0.1, 0.1, 0.9, 1};
 
     /*difuzna refleksija materijala */
-    GLfloat d[] = {0.8, 0, 0.8, 1};
+    GLfloat d[] = {0.0, 0.2, 0.8, 1};
 
     /*spekularna refleksija materijala */
-    GLfloat s[] = {0.7, 0, 0, 1};
+    GLfloat s[] = {1, 1, 1, 1};
 
     /*odsjaj */
 
-    GLfloat shininess = 10;
+    GLfloat shininess = 30;
 
     /*podesavaju se parametri svetla */
 
-    glEnable(GL_LIGHT0);
-    glLightfv(GL_LIGHT0, GL_POSITION, position);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT1);
+    
+    glLightfv(GL_LIGHT1, GL_POSITION, position);
+    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, specular);
 
     /*podesavaju se parametri materijala */
-    glMaterialfv(GL_FRONT, GL_AMBIENT, a);
-    glMaterialfv(GL_FRONT, GL_DIFFUSE, d);
-    glMaterialfv(GL_FRONT, GL_SPECULAR, s);
-    glMaterialf(GL_FRONT, GL_SHININESS, shininess);
-
-
-    glEnable(GL_LIGHT0);
-}
-
-static void draw_snake() {
-
-    
-
-    glColor3f(0, 0, 1);
-
-    glPushMatrix();
-
-
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, a);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, d);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, s);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
+   
 
     glTranslatef(
         parameters[0].parameter_x,
@@ -427,29 +523,55 @@ static void draw_snake() {
 
 
     glPopMatrix();
-/*
-    glPushMatrix();
-    glTranslatef(
-        parameters[1].parameter_x,
-        parameters[1].parameter_y,
-        2*size + parameters[1].parameter_z
-    );
 
-    positions_of_snake[1].x = parameters[1].parameter_x;
-    positions_of_snake[1].y = parameters[1].parameter_y;
-    positions_of_snake[1].z = 2*size +  parameters[1].parameter_z;
+    glDisable(GL_LIGHT1);
+    glDisable(GL_LIGHTING);
 
-    glutSolidSphere(size, 20, 20);
-
-
-    glPopMatrix();
-
-    */
 
 }
 
 static void draw_food() {
-    glColor3f(0.5, 0, 0.5);
+    
+
+    GLfloat position[] = {0, 5, 0, 0};
+
+    /*ambijentalna boja svetla */
+    GLfloat ambient[] = {0, 0, 0, 1};
+
+    /*difuzna boja svetla */
+    GLfloat diffuse[] = {0.7, 0.7, 0.7, 1};
+
+    /*spekularna boja svetla */
+    GLfloat specular[] = {0.9, 0.9, 0.9, 1};
+
+    /*ambijentalna refleksija materijala */
+    GLfloat a[] = {1, 0.1, 0.1,  1};
+
+    /*difuzna refleksija materijala */
+    GLfloat d[] = {0, 0, 0.8, 1};
+
+    /*spekularna refleksija materijala */
+    GLfloat s[] = {1, 1, 1, 1};
+
+    /*odsjaj */
+
+    GLfloat shininess = 30;
+
+    /*podesavaju se parametri svetla */
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT2);
+    
+    glLightfv(GL_LIGHT2, GL_POSITION, position);
+    glLightfv(GL_LIGHT2, GL_AMBIENT, ambient);
+    glLightfv(GL_LIGHT2, GL_DIFFUSE, diffuse);
+    glLightfv(GL_LIGHT2, GL_SPECULAR, specular);
+
+    /*podesavaju se parametri materijala */
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, a);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, d);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, s);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shininess);
 
     glPushMatrix();
 
@@ -467,13 +589,28 @@ static void draw_food() {
 
     glPopMatrix();
 
+    /*preuzeto iz materijala na sajtu asistenta Bozidara Antica */
+
+    glRasterPos3i(position_of_food.x, 0, position_of_food.z);
+    int i;
+    for (i = 0; i < 4; i++) {
+        glBitmap(
+                16, 12,
+                0.0, 0.0,
+                16.0, 0.0,
+                rasters + 24 * i
+                );
+    }
+
+    glDisable(GL_LIGHT2);
+    glDisable(GL_LIGHTING);
     
 }
 
 static void game_over() {
     /*treba da se ispise da je igra gotova i poeni */
 
-
+    
 
     /*brzina se postavlja na nulu, sto znaci je sada onemoguceno kretanje zmije  */
     speed = 0;
@@ -527,8 +664,8 @@ static void check_is_food_eaten(){
         return;
     }
 
-    int cond1 = first >= -0.02 && first <= 0.02;
-    int cond2 = second >= -0.02 && second <= 0.02;
+    int cond1 = first >= -0.03 && first <= 0.03;
+    int cond2 = second >= -0.03 && second <= 0.03;
 
     if (cond1 && cond2) {
       
@@ -537,6 +674,8 @@ static void check_is_food_eaten(){
         position_of_food.x = parameter_food_x;
         position_of_food.z = parameter_food_z;
         number_of_foods_eaten++;
+        speed += 0.003;
+       
     }
 
 
@@ -547,26 +686,13 @@ static void on_display(void) {
 
     
     view();
+ 
+   drawWall();
     
-    
-    drawWall();
 
     draw_food();
-    
-
-   /* if (indicator_draw_food) {
-        draw_food(pos);
-        pos = pos + 1;
-        indicator_draw_food = 0;
-    } */
-
-
+  
     draw_snake();
-
-    
-
-    
-    
 
     glutSwapBuffers();
 
