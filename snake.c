@@ -31,15 +31,16 @@ static Parameter *parameters;
 static int is_animation_going = 0;
 static float speed = 0.012;
 static float size = 0.1;
-
+static float parameter_food_x;
+static float parameter_food_z;
 
 static int current_direction = LEFT;
 static int previous_direction = LEFT;
 
 static Position *positions_of_snake;
 
-static Position *positions_of_food;
-static int pos = 0;
+static Position position_of_food;
+static int number_of_foods_eaten = 0;
 
 
 static void on_display(void);
@@ -52,9 +53,9 @@ static void drawWall();
 static void view();
 static void light_scene();
 static void draw_snake();
-static void draw_food(int pos);
+static void draw_food();
 static void game_over();
-static void check_is_food_eaten(int i);
+static void check_is_food_eaten();
 
 
 int main(int argc, char **argv) {
@@ -81,20 +82,16 @@ int main(int argc, char **argv) {
 
     positions_of_snake = malloc(50*sizeof(Position));
 
-    positions_of_food = malloc(15 * sizeof(Position));
-
-    int i;
-
+    
     srand(time(NULL));
 
     /*generisemo random pozicije hrane */
 
-    for (i = 0; i < 15; i++) {
-        positions_of_food[i].x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
-        positions_of_food[i].y = 0;
-        positions_of_food[i].z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+  
+    position_of_food.x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
+    position_of_food.z = 0;
+    position_of_food.z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
 
-    }
 
     glShadeModel(GL_SMOOTH);
   
@@ -281,7 +278,7 @@ static void on_timer(int value) {
         game_over();
     }
 
-    check_is_food_eaten(pos-1);
+    check_is_food_eaten();
 
     switch (current_direction)
     {
@@ -451,15 +448,15 @@ static void draw_snake() {
 
 }
 
-static void draw_food(int pos) {
+static void draw_food() {
     glColor3f(0.5, 0, 0.5);
 
     glPushMatrix();
 
     glTranslatef(
-        positions_of_food[pos].x,
-        positions_of_food[pos].y,
-        positions_of_food[pos].z
+        position_of_food.x,
+        position_of_food.y,
+        position_of_food.z
     );
 
     
@@ -481,46 +478,48 @@ static void game_over() {
     /*brzina se postavlja na nulu, sto znaci je sada onemoguceno kretanje zmije  */
     speed = 0;
 
+    printf("%d\n", number_of_foods_eaten);
+
 
 }
 
-static void check_is_food_eaten(int i){
+static void check_is_food_eaten(){
 
     /*provera za prvi kvadrant, gde su x i z pozitivni, y je 0 */
     float first = 10;
     float second = 10;
 
-    if (positions_of_snake[0].x >= 0 && positions_of_food[i].x >= 0) {
-        if (positions_of_snake[0].y >= 0 && positions_of_food[i].z >= 0) {
-            first = positions_of_snake[0].x - positions_of_food[i].x;
-            second = positions_of_snake[0].z - positions_of_food[i].z;
+    if (positions_of_snake[0].x >= 0 && position_of_food.x >= 0) {
+        if (positions_of_snake[0].y >= 0 && position_of_food.z >= 0) {
+            first = positions_of_snake[0].x - position_of_food.x;
+            second = positions_of_snake[0].z - position_of_food.z;
         }
     
     }
 
     /*provera za drugi */
 
-    if (positions_of_snake[0].x >= 0 && positions_of_food[i].x >= 0) {
-        if (positions_of_snake[0].y <= 0 && positions_of_food[i].z <= 0) {
-            first = positions_of_snake[0].x - positions_of_food[i].x;
-            second = positions_of_snake[0].z - positions_of_food[i].z;
+    if (positions_of_snake[0].x >= 0 && position_of_food.x >= 0) {
+        if (positions_of_snake[0].y <= 0 && position_of_food.z <= 0) {
+            first = positions_of_snake[0].x - position_of_food.x;
+            second = positions_of_snake[0].z - position_of_food.z;
         }
     }
 
     /*treci */
 
-    if (positions_of_snake[0].x <= 0 && positions_of_food[i].x <= 0) {
-        if (positions_of_snake[0].y <= 0 && positions_of_food[i].z <= 0) {
-            first = positions_of_snake[0].x - positions_of_food[i].x;
-            second = positions_of_snake[0].z - positions_of_food[i].z;
+    if (positions_of_snake[0].x <= 0 && position_of_food.x <= 0) {
+        if (positions_of_snake[0].y <= 0 && position_of_food.z <= 0) {
+            first = positions_of_snake[0].x - position_of_food.x;
+            second = positions_of_snake[0].z - position_of_food.z;
         }
     }
 
     /*cetvrti */
-    if (positions_of_snake[0].x <= 0 && positions_of_food[i].x <= 0) {
-        if (positions_of_snake[0].y >= 0 && positions_of_food[i].z >= 0) {
-            first = positions_of_snake[0].x - positions_of_food[i].x;
-            second = positions_of_snake[0].z - positions_of_food[i].z;
+    if (positions_of_snake[0].x <= 0 && position_of_food.x <= 0) {
+        if (positions_of_snake[0].y >= 0 && position_of_food.z >= 0) {
+            first = positions_of_snake[0].x - position_of_food.x;
+            second = positions_of_snake[0].z - position_of_food.z;
         }
     }
 
@@ -532,8 +531,12 @@ static void check_is_food_eaten(int i){
     int cond2 = second >= -0.02 && second <= 0.02;
 
     if (cond1 && cond2) {
-        printf("hrana\n");
-        
+      
+        parameter_food_x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
+        parameter_food_z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+        position_of_food.x = parameter_food_x;
+        position_of_food.z = parameter_food_z;
+        number_of_foods_eaten++;
     }
 
 
@@ -548,8 +551,8 @@ static void on_display(void) {
     
     drawWall();
 
-    draw_food(0);
-    pos = 1;
+    draw_food();
+    
 
    /* if (indicator_draw_food) {
         draw_food(pos);
