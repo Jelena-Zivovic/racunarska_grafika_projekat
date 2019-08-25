@@ -2,73 +2,7 @@
 #include <GL/glut.h>
 #include <time.h>
 #include <stdio.h>
-
-GLubyte rasters[5 * 24] = {
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000011, 0b00001100,
-    0b11000111, 0b10001100,
-    0b11001100, 0b11001100,
-    0b11011000, 0b01101100,
-    0b11110000, 0b00111100,
-    0b11100000, 0b00011100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11111111, 0b11111100,
-    0b11111111, 0b11111100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11000000, 0b00001100,
-    0b11100000, 0b00011100,
-    0b01111111, 0b11111000,
-    0b00111111, 0b11110000,
-
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b00000011, 0b00000000,
-    0b11111111, 0b11111100,
-    0b11111111, 0b11111100,
-
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11111111, 0b11110000,
-    0b11111111, 0b11110000,
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11000000, 0b00000000,
-    0b11111111, 0b11111100,
-    0b11111111, 0b11111100,
-
-    0b11110000, 0b00000000,
-    0b11110000, 0b00000000,
-    0b11110000, 0b00000000,
-    0b11110000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000,
-    0b00000000, 0b00000000
-};
+#include <string.h>
 
 typedef struct {
     float x;
@@ -97,19 +31,27 @@ static int window_width, window_height;
 
 static Parameter *parameters;
 static int is_animation_going = 0;
-static float speed = 0.01;
+static float speed = 0.006;
 static float size = 0.1;
 static float parameter_food_x;
 static float parameter_food_z;
 
 static int current_direction = LEFT;
-static int previous_direction = LEFT;
 
 static Position *positions_of_snake;
 
 static Position position_of_food;
 static int number_of_foods_eaten = 0;
 
+static char subjects[][32] =
+{"P1", "UOAR1", "DS1", "LAAG", "P2", "UOAR2", "DS2", "A1",
+"AISP", "UVIT", "OS", "G", "A2", "KIAA", "OOP", "A3", "ALG1",
+"RBP", "PPJ", "RG", "V", "UNM", "VI", "IP1", "PP", "PBP", "S",
+"RM", "RS", "ProjBP", "MSNR", "KK"};
+
+int num_subjects = 32;
+
+int pos = 0;
 
 static void on_display(void);
 static void on_keyboard(unsigned char key, int x, int y);
@@ -123,6 +65,8 @@ static void draw_snake();
 static void draw_food();
 static void game_over();
 static void check_is_food_eaten();
+static void write_text(char *s);
+static void draw_score();
 
 
 int main(int argc, char **argv) {
@@ -130,7 +74,7 @@ int main(int argc, char **argv) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGB | GLUT_DEPTH | GLUT_DOUBLE);
 
-    glutInitWindowSize(1000, 1000);
+    glutInitWindowSize(1100, 1100);
     glutInitWindowPosition(200, 200);
     glutCreateWindow("zmijica");
 
@@ -152,12 +96,23 @@ int main(int argc, char **argv) {
     
     srand(time(NULL));
 
-    /*generisemo random pozicije hrane */
+    /*generisemo random pozicije hrane, ali da budu van prepreka */
 
   
     position_of_food.x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
     position_of_food.z = 0;
     position_of_food.z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+
+    int condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
+    int condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+
+    while (condition_x && condition_z) {
+        position_of_food.x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
+        position_of_food.z = 0;
+        position_of_food.z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+        condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
+        condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+    }
 
 
     glShadeModel(GL_SMOOTH);
@@ -252,7 +207,7 @@ static void drawWall() {
     /*glColor3f(0.7, 0, 0); */
     
     glTranslatef(0, 0, -3);
-    glScalef(4, 0.2, 0.2);
+    glScalef(4, 0.3, 0.2);
     
     glutSolidCube(1);
     
@@ -266,7 +221,7 @@ static void drawWall() {
     glColor3f(0.7, 0, 0);
     
     glTranslatef(0, 0, 3);
-    glScalef(4, 0.2, 0.2);
+    glScalef(4, 0.3, 0.2);
     
     glutSolidCube(1);
 
@@ -279,7 +234,7 @@ static void drawWall() {
     glColor3f(0.7, 0, 0);
     
     glTranslatef(2, 0, 0);
-    glScalef(0.2, 0.2, 6.2);
+    glScalef(0.2, 0.3, 6.2);
     
     glutSolidCube(1);
 
@@ -292,8 +247,19 @@ static void drawWall() {
     glColor3f(0.7, 0, 0);
     
     glTranslatef(-2, 0, 0);
-    glScalef(0.2, 0.2, 6.2);
+    glScalef(0.2, 0.3, 6.2);
     
+    glutSolidCube(1);
+
+    glPopMatrix();
+
+    /*prepreke */
+
+    glPushMatrix();
+
+    glTranslatef(-0.7, 0, 0.5);
+    glScalef(0.1, 0.3, 2);
+
     glutSolidCube(1);
 
     glPopMatrix();
@@ -315,7 +281,6 @@ static void on_special(int key, int x, int y) {
 
     switch(key) {
         case 101:
-            previous_direction = current_direction;
             current_direction = UP;
             
 
@@ -327,7 +292,6 @@ static void on_special(int key, int x, int y) {
             break;
         
         case 103:
-            previous_direction = current_direction;
             current_direction = DOWN;
             
             if (!is_animation_going) {
@@ -337,7 +301,6 @@ static void on_special(int key, int x, int y) {
             }
             break;
         case 100:
-            previous_direction = current_direction;
             current_direction = LEFT;
             
 
@@ -348,7 +311,6 @@ static void on_special(int key, int x, int y) {
             }
             break;
         case 102:
-            previous_direction = current_direction;
             current_direction = RIGHT;
            
             if (!is_animation_going) {
@@ -373,8 +335,19 @@ static void on_timer(int value) {
         positions_of_snake[0].z >= 2.8 || 
         positions_of_snake[0].z <= -2.8) {
         
-        is_animation_going = 0;
+       
 
+        game_over();
+    }
+
+    /*da li je zmija udarila u prepreku */
+
+    int condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
+    int condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+
+    if (condition_x && condition_z) {
+        printf("x\n");
+       
         game_over();
     }
 
@@ -415,7 +388,6 @@ static void on_keyboard(unsigned char key, int x, int y) {
             exit(0);
             break;
         case 'a':
-            previous_direction = current_direction;
             current_direction = LEFT;
             if (!is_animation_going) {
                 
@@ -425,7 +397,6 @@ static void on_keyboard(unsigned char key, int x, int y) {
             break;
 
         case 'w':
-            previous_direction = current_direction;
             current_direction = UP;
             if (!is_animation_going) {
                 
@@ -434,7 +405,6 @@ static void on_keyboard(unsigned char key, int x, int y) {
             }
             break;
         case 'd':
-            previous_direction = current_direction;
             current_direction = RIGHT;
             if (!is_animation_going) {
                 
@@ -443,7 +413,6 @@ static void on_keyboard(unsigned char key, int x, int y) {
             }
             break;
         case 'x':
-            previous_direction = current_direction;
             current_direction = DOWN;
             if (!is_animation_going) {
                 
@@ -454,6 +423,15 @@ static void on_keyboard(unsigned char key, int x, int y) {
         case 'p':
             is_animation_going = 0;
             break;
+        case 's':
+            if (!is_animation_going) {
+                parameters[0].parameter_x = 0;
+                parameters[0].parameter_z = 0;
+                speed = 0.006;
+                glutTimerFunc(TIMER_INTERVAL, on_timer, TIMER_ID);
+                is_animation_going = 1;
+                
+            }
         
 
     }
@@ -534,7 +512,7 @@ static void draw_food() {
     
 
     GLfloat position[] = {0, 5, 0, 0};
-
+ 
     /*ambijentalna boja svetla */
     GLfloat ambient[] = {0, 0, 0, 1};
 
@@ -542,13 +520,13 @@ static void draw_food() {
     GLfloat diffuse[] = {0.7, 0.7, 0.7, 1};
 
     /*spekularna boja svetla */
-    GLfloat specular[] = {0.9, 0.9, 0.9, 1};
+    GLfloat specular[] = {0.9, 0.9, 0.5, 1};
 
     /*ambijentalna refleksija materijala */
-    GLfloat a[] = {1, 0.1, 0.1,  1};
+    GLfloat a[] = {1, 0.4, 0.1,  1};
 
     /*difuzna refleksija materijala */
-    GLfloat d[] = {0, 0, 0.8, 1};
+    GLfloat d[] = {0, 0.3, 0.3, 1};
 
     /*spekularna refleksija materijala */
     GLfloat s[] = {1, 1, 1, 1};
@@ -582,25 +560,17 @@ static void draw_food() {
     );
 
     
-
+   
     glutSolidSphere(0.07, 20, 20);
+    
 
     
 
     glPopMatrix();
 
-    /*preuzeto iz materijala na sajtu asistenta Bozidara Antica */
-
-    glRasterPos3i(position_of_food.x, 0, position_of_food.z);
-    int i;
-    for (i = 0; i < 4; i++) {
-        glBitmap(
-                16, 12,
-                0.0, 0.0,
-                16.0, 0.0,
-                rasters + 24 * i
-                );
-    }
+    glRasterPos3f(position_of_food.x, 0, position_of_food.z+0.08);
+  
+    write_text(subjects[pos]);
 
     glDisable(GL_LIGHT2);
     glDisable(GL_LIGHTING);
@@ -613,9 +583,10 @@ static void game_over() {
     
 
     /*brzina se postavlja na nulu, sto znaci je sada onemoguceno kretanje zmije  */
+    is_animation_going = 0;
     speed = 0;
 
-    printf("%d\n", number_of_foods_eaten);
+  
 
 
 }
@@ -664,8 +635,8 @@ static void check_is_food_eaten(){
         return;
     }
 
-    int cond1 = first >= -0.03 && first <= 0.03;
-    int cond2 = second >= -0.03 && second <= 0.03;
+    int cond1 = first >= -0.04 && first <= 0.04;
+    int cond2 = second >= -0.04 && second <= 0.04;
 
     if (cond1 && cond2) {
       
@@ -675,7 +646,43 @@ static void check_is_food_eaten(){
         position_of_food.z = parameter_food_z;
         number_of_foods_eaten++;
         speed += 0.003;
+        if (pos == num_subjects) {
+            game_over();
+        } {
+            pos++;
+        }
        
+    }
+
+
+}
+
+static void write_text(char *s) {
+    int i;
+    for (i = 0; i < strlen(s); i++) {
+        glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_10, s[i]);
+ 
+    }
+}
+
+static void draw_score() {
+    char *str = "SCORE: ";
+    glColor3f(1,1,1);
+    glRasterPos3f(2, 0, -4.2);
+    int i;
+    for (i = 0; i < strlen(str); i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, str[i]);
+ 
+    }
+
+    char score[3];
+    score[0] = number_of_foods_eaten / 10 + '0';
+    score[1] = number_of_foods_eaten % 10 + '0';
+    score[2] = 0;
+
+    for (i = 0; i < 3; i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, score[i]);
+ 
     }
 
 
@@ -693,6 +700,8 @@ static void on_display(void) {
     draw_food();
   
     draw_snake();
+
+    draw_score();
 
     glutSwapBuffers();
 
