@@ -1,0 +1,4 @@
+Zmija se sastoji iz jednog kvadrata kog je moguce pokretati uz pomoc tastature pritiskom na strelice ili na tastere a - levo, w - dole, d - desno i s - dole. Na ekranu se nalazi zid koji se sastoji iz 4 pravougaonika i dva zida koja se nalazi u okviru ova 4 i predstavljaju prepreke. Zmija se na pocetku nalazi na sredini ekrana, pokrece se prvim pritiskom na jedan od malopre navedenih tastera. U gornjem levom uglu se nalazi trenutni rezultat.
+Ako zmija udari u zid ili u prepreku, prekida se igra i ispisuje se poruka. Nakon toga je potrebno pritisnuti ESC da bi se zatvorio prozor.
+Maksimalan broj poena je 32 jer je toliko predmeta uneto. Ako se postigne 32 poena, pobedjuje se, ispisuje se odgovarajuca poruka i prekida se igra. 
+
