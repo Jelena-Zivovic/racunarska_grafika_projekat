@@ -20,12 +20,15 @@ typedef struct  {
 #define TIMER_INTERVAL 15
 #define TIMER_ID 0
 
+#define WIN 1
+#define LOSE 2
+
 #define UP 1
 #define DOWN 2
 #define LEFT 3
 #define RIGHT 4
 
-
+static int indicator_winning = 0;
 
 static int window_width, window_height;
 
@@ -67,6 +70,8 @@ static void game_over();
 static void check_is_food_eaten();
 static void write_text(char *s);
 static void draw_score();
+static void write_winner_message();
+static void write_loser_message();
 
 
 int main(int argc, char **argv) {
@@ -103,15 +108,32 @@ int main(int argc, char **argv) {
     position_of_food.z = 0;
     position_of_food.z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
 
-    int condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
-    int condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+    int condition1_x = positions_of_snake[0].x <= -0.58 && positions_of_snake[0].x >= -0.82;
+    int condition1_z = positions_of_snake[0].z <= 1.62 && positions_of_snake[0].z >= -0.58;
 
-    while (condition_x && condition_z) {
+    while (condition1_x) {
         position_of_food.x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
-        position_of_food.z = 0;
+        condition1_x = positions_of_snake[0].x <= -0.58 && positions_of_snake[0].x >= -0.82;
+      
+    }
+
+   while (condition1_z) {
         position_of_food.z = -2.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
-        condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
-        condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+        condition1_z = positions_of_snake[0].z <= -0.58 && positions_of_snake[0].z >= -0.82;
+      
+    }
+
+    int condition2_x = positions_of_snake[0].x <= 1.35 && positions_of_snake[0].x >= -0.35;
+    int condition2_z = positions_of_snake[0].z <= -1.95 && positions_of_snake[0].z >= -2.05;
+
+    while (condition2_x) {
+        position_of_food.x = -1.8 + (rand() / (float)RAND_MAX) * (1.8 + 1.8);
+        condition2_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
+    }
+
+    while (condition2_z) {
+        position_of_food.z = -1.8 + (rand() / (float)RAND_MAX) * (2.8 + 2.8);
+        condition2_z = positions_of_snake[0].z <= -0.6 && positions_of_snake[0].z >= -0.8;
     }
 
 
@@ -253,13 +275,26 @@ static void drawWall() {
 
     glPopMatrix();
 
-    /*prepreke */
+    /*prva prepreka */
 
     glPushMatrix();
 
     glTranslatef(-0.7, 0, 0.5);
     glScalef(0.1, 0.3, 2);
 
+    glutSolidCube(1);
+
+    glPopMatrix();
+
+    
+
+    /*druga prepreka */
+
+    glPushMatrix();
+
+    glTranslatef(0.5, 0, -2);
+    glScalef(1.5, 0.3, 0.1);
+    
     glutSolidCube(1);
 
     glPopMatrix();
@@ -336,18 +371,26 @@ static void on_timer(int value) {
         positions_of_snake[0].z <= -2.8) {
         
        
-
+        indicator_winning = LOSE;
         game_over();
     }
 
     /*da li je zmija udarila u prepreku */
 
-    int condition_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
-    int condition_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
+    int condition1_x = positions_of_snake[0].x <= -0.6 && positions_of_snake[0].x >= -0.8;
+    int condition1_z = positions_of_snake[0].z <= 1.6 && positions_of_snake[0].z >= -0.6;
 
-    if (condition_x && condition_z) {
-        printf("x\n");
+    if (condition1_x && condition1_z) {
+        indicator_winning = LOSE;
        
+        game_over();
+    }
+
+    int condition2_x = positions_of_snake[0].x <= 1.32 && positions_of_snake[0].x >= -0.32;
+    int condition2_z = positions_of_snake[0].z <= -1.9 && positions_of_snake[0].z >= -2.1;
+
+    if (condition2_x && condition2_z) {
+        indicator_winning = LOSE;
         game_over();
     }
 
@@ -647,6 +690,7 @@ static void check_is_food_eaten(){
         number_of_foods_eaten++;
         speed += 0.003;
         if (pos == num_subjects) {
+            indicator_winning = WIN;
             game_over();
         } {
             pos++;
@@ -688,6 +732,31 @@ static void draw_score() {
 
 }
 
+static void write_winner_message() {
+
+    glColor3f(1, 1, 1);
+    glRasterPos3f(0, 0, -0.9);
+    int i;
+    char *message = "Cestitamo, polozili ste sve predmete!";
+
+    for (i = 0; i < strlen(message); i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, message[i]);
+ 
+    }
+}
+
+static void write_loser_message() {
+    glColor3f(1, 1, 1);
+    glRasterPos3f(0, 0, -1.2);
+    int i;
+    char *message = "Vise srece sledeci put! Pritisnite ESC za izlaz.";
+
+    for (i = 0; i < strlen(message); i++) {
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, message[i]);
+ 
+    }
+}
+
 static void on_display(void) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -702,6 +771,13 @@ static void on_display(void) {
     draw_snake();
 
     draw_score();
+
+    if (indicator_winning == WIN) {
+        write_winner_message();
+    }
+    else if (indicator_winning == LOSE) {
+        write_loser_message();
+    }
 
     glutSwapBuffers();
 
